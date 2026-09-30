@@ -146,3 +146,14 @@ class MeuPerfilVinculosTestCase(APITestCase):
         self.assertIsNone(dados_resp["professor"])
         self.assertEqual(dados_resp["dependentes"], [aluno.pk])
         self.assertNotIn("password", dados_resp)
+
+
+class SuperusuarioTipoTestCase(APITestCase):
+    def test_superusuario_e_sempre_do_tipo_admin(self):
+        user = CustomUser.objects.create_superuser(username="dona_do_sistema", password=secrets.token_urlsafe(16))
+
+        self.assertEqual(user.tipo, "admin")
+        user.tipo = "professor"
+        user.save()
+        user.refresh_from_db()
+        self.assertEqual(user.tipo, "admin")
