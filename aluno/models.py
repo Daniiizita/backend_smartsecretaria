@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import models
 from turma.models import Turma
     
@@ -16,6 +17,13 @@ class Aluno(models.Model):
     nome_responsavel = models.CharField(max_length=100, blank=True, null=True)
     turma = models.ForeignKey(Turma, on_delete=models.CASCADE)
     foto = models.ImageField(upload_to='alunos/', blank=True, null=True)
+    # Contas de login dos responsáveis: o dado é do aluno, o acesso é do responsável.
+    responsaveis = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        blank=True,
+        related_name='dependentes',
+        limit_choices_to={'tipo': 'responsavel'},
+    )
 
     def __str__(self):
         return f"{self.nome_completo} - Turma: {self.turma}"

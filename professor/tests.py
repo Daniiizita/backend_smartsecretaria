@@ -1,4 +1,7 @@
 from django.test import TestCase
+from rest_framework import status
+from rest_framework.test import APITestCase
+from usuarios.models import CustomUser
 from .models import Professor
 from disciplina.models import Disciplina
 
@@ -33,3 +36,49 @@ class ProfessorTestCase(TestCase):
         disciplina = Disciplina.objects.create(nome='Biologia')
         self.assertEqual(str(disciplina), 'Biologia')
 
+
+
+class ProfessorVinculoUsuarioTestCase(APITestCase):
+    def setUp(self):
+        self.client.force_authenticate(
+            user=CustomUser.objects.create_user(username="admin_vinculo", tipo="admin")
+        )
+        self.conta_professor = CustomUser.objects.create_user(
+            username="conta_prof", tipo="professor"
+        )
+        self.professor = Professor.objects.create(nome="Ana Souza")
+
+    def vincular(self, professor, usuario):
+        return self.client.patch(
+            f"/api/professor/{professor.pk}/", {"usuario": usuario.pk}, format="json"
+        )
+
+    def test_vincula_conta_do_tipo_professor(self):
+        response = self.vincular(self.professor, self.conta_professor)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(self.conta_professor.professor, self.professor)
+
+    def test_rejeita_conta_de_outro_tipo(self):
+        for tipo in ("admin", "secretario", "aluno", "responsavel"):
+            with self.subTest(tipo=tipo):
+                conta = CustomUser.objects.create_user(username=f"conta_{tipo}", tipo=tipo)
+                response = self.vincular(self.professor, conta)
+                self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+                self.assertIn("usuario", response.data)
+
+    def test_conta_vinculada_a_apenas_um_professor(self):
+        self.vincular(self.professor, self.conta_professor)
+        outro = Professor.objects.create(nome="Bruno Lima")
+
+        response = self.vincular(outro, self.conta_professor)
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_excluir_conta_mantem_o_cadastro(self):
+        self.vincular(self.professor, self.conta_professor)
+
+        self.conta_professor.delete()
+
+        self.professor.refresh_from_db()
+        self.assertIsNone(self.professor.usuario)
