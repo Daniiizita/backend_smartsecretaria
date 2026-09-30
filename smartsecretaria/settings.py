@@ -62,6 +62,8 @@ INSTALLED_APPS = [
     # Aplicativos de terceiros
     'rest_framework',
     'rest_framework_simplejwt',
+    # Invalida refresh tokens já usados (rotação) e no logout.
+    'rest_framework_simplejwt.token_blacklist',
     'drf_spectacular',
     'corsheaders',
     
@@ -213,7 +215,14 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'EXCEPTION_HANDLER': 'core.exceptions.custom_exception_handler',
+    # Atrás do proxy do provedor, quantos proxies adicionam X-Forwarded-For (identifica o IP real).
+    'NUM_PROXIES': int(os.environ['THROTTLE_NUM_PROXIES']) if os.getenv('THROTTLE_NUM_PROXIES') else None,
 }
+
+# Tentativas de login por IP (formato do DRF: 10/min, 30/hour...).
+# Em `manage.py test` o limite padrão é alto: todos os testes vêm do mesmo IP.
+_EM_TESTE = len(sys.argv) > 1 and sys.argv[1] == 'test'
+LOGIN_THROTTLE_RATE = os.getenv('LOGIN_THROTTLE_RATE', '10000/min' if _EM_TESTE else '10/min')
 
 
 SIMPLE_JWT = {
