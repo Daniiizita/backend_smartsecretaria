@@ -108,3 +108,22 @@ class TrocarSenhaSerializer(serializers.Serializer):
         user.set_password(self.validated_data['nova_senha'])
         user.save(update_fields=['password'])
         return user
+
+
+class MeuPerfilSerializer(CustomUserSerializer):
+    """Perfil do usuário logado, com os cadastros aos quais a conta está ligada."""
+
+    professor = serializers.SerializerMethodField()
+    dependentes = serializers.SerializerMethodField()
+
+    class Meta(CustomUserSerializer.Meta):
+        fields = CustomUserSerializer.Meta.fields + ['professor', 'dependentes']
+
+    def get_professor(self, user):
+        professor = getattr(user, 'professor', None)
+        return professor.pk if professor else None
+
+    def get_dependentes(self, user):
+        if user.tipo != 'responsavel':
+            return []
+        return list(user.dependentes.order_by('id').values_list('id', flat=True))

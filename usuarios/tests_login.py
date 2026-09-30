@@ -116,3 +116,33 @@ class EmailUnicoTestCase(APITestCase):
     def test_contas_sem_email_continuam_permitidas(self):
         self.assertEqual(self.criar("sem1", "").status_code, status.HTTP_201_CREATED)
         self.assertEqual(self.criar("sem2", "").status_code, status.HTTP_201_CREATED)
+
+
+class MeuPerfilVinculosTestCase(APITestCase):
+    def test_me_informa_cadastro_de_professor_e_dependentes(self):
+        from datetime import date
+
+        from aluno.models import Aluno
+        from professor.models import Professor
+        from turma.models import Turma
+
+        conta_prof = CustomUser.objects.create_user(username="p", tipo="professor")
+        professor = Professor.objects.create(nome="P", usuario=conta_prof)
+        turma = Turma.objects.create(serie=3, professor_responsavel=professor)
+        aluno = Aluno.objects.create(
+            nome_completo="A", data_nascimento=date(2016, 1, 1), endereco="-",
+            telefone_contato="0", turma=turma,
+        )
+        responsavel = CustomUser.objects.create_user(username="r", tipo="responsavel")
+        aluno.responsaveis.add(responsavel)
+
+        self.client.force_authenticate(user=conta_prof)
+        dados_prof = self.client.get("/api/usuarios/me/").data
+        self.client.force_authenticate(user=responsavel)
+        dados_resp = self.client.get("/api/usuarios/me/").data
+
+        self.assertEqual(dados_prof["professor"], professor.pk)
+        self.assertEqual(dados_prof["dependentes"], [])
+        self.assertIsNone(dados_resp["professor"])
+        self.assertEqual(dados_resp["dependentes"], [aluno.pk])
+        self.assertNotIn("password", dados_resp)

@@ -8,7 +8,7 @@ from core.permissions import (
     tipos_de_conta_gerenciaveis,
 )
 from ..models import CustomUser
-from .serializers import CustomUserSerializer, TrocarSenhaSerializer
+from .serializers import CustomUserSerializer, MeuPerfilSerializer, TrocarSenhaSerializer
 
 class CustomUserViewSet(viewsets.ModelViewSet):
     """
@@ -29,7 +29,8 @@ class CustomUserViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
     def me(self, request):
-        return Response(self.get_serializer(request.user).data)
+        serializer = MeuPerfilSerializer(request.user, context=self.get_serializer_context())
+        return Response(serializer.data)
 
     @action(
         detail=False,
