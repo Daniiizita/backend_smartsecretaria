@@ -12,3 +12,12 @@ class ProfessorSerializer(serializers.ModelSerializer):
                 'A conta vinculada precisa ser do tipo professor.'
             )
         return value
+
+
+class ProfessorBasicoSerializer(serializers.ModelSerializer):
+    """Dados básicos para colegas e responsáveis: sem documentos nem contatos pessoais."""
+
+    class Meta:
+        model = Professor
+        fields = ['id', 'nome', 'disciplinas']
+        read_only_fields = fields
