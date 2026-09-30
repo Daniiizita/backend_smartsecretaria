@@ -1,12 +1,20 @@
-from rest_framework import viewsets
+from rest_framework import mixins, viewsets
 from rest_framework.permissions import IsAuthenticated
-from ..models import Notificacao  # troque "Aluno"
+from ..models import Notificacao
 from .serializers import NotificacaoSerializer
 
-class NotificacaoViewSet(viewsets.ModelViewSet):
+class NotificacaoViewSet(
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    mixins.UpdateModelMixin,
+    viewsets.GenericViewSet,
+):
     """
-    ViewSet base para CRUD completo do modelo.
+    Cada usuário vê apenas as próprias notificações e só pode marcá-las como lidas.
+    As notificações são geradas pelo sistema, não criadas pela API.
     """
-    queryset = Notificacao.objects.all().order_by('id')  # ajuste a ordenação se precisar
     serializer_class = NotificacaoSerializer
-    permission_classes = [IsAuthenticated]  # exige JWT
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Notificacao.objects.filter(usuario=self.request.user).order_by('-criada_em')

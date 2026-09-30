@@ -1,5 +1,5 @@
 from rest_framework import viewsets
-from rest_framework.permissions import IsAuthenticated
+from core.permissions import IsGestor
 from ..models import Documento # troque "Aluno"
 from .serializers import DocumentoSerializer
 
@@ -9,4 +9,4 @@ class DocumentoViewSet(viewsets.ModelViewSet):
     """
     queryset = Documento.objects.all().order_by('id')  # ajuste a ordenação se precisar
     serializer_class = DocumentoSerializer
-    permission_classes = [IsAuthenticated]  # exige JWT
+    permission_classes = [IsGestor]

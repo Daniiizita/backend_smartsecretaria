@@ -1,6 +1,6 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from core.permissions import IsGestor
 from django.utils import timezone
 
 from aluno.models import Aluno
@@ -18,7 +18,7 @@ class DashboardAPIView(APIView):
     """
     API que fornece os dados agregados para o dashboard principal.
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsGestor]
 
     def get(self, request, format=None):
         hoje = timezone.now()

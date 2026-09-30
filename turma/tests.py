@@ -100,13 +100,16 @@ class TurmaDisciplinaAPITestCase(APITestCase):
         user = CustomUser.objects.create_user(username=f"u_{tipo}", tipo=tipo)
         self.client.force_authenticate(user=user)
 
-    def test_admin_atribui_professor(self):
-        self.autenticar("admin")
+    def test_gestao_atribui_professor(self):
+        for tipo in ("admin", "secretario"):
+            with self.subTest(tipo=tipo):
+                TurmaDisciplina.objects.all().delete()
+                self.autenticar(tipo)
 
-        response = self.client.post(self.url, self.payload, format="json")
+                response = self.client.post(self.url, self.payload, format="json")
 
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(TurmaDisciplina.objects.count(), 1)
+                self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+                self.assertEqual(TurmaDisciplina.objects.count(), 1)
 
     def test_atribuicao_duplicada_retorna_400(self):
         self.autenticar("admin")
@@ -120,7 +123,7 @@ class TurmaDisciplinaAPITestCase(APITestCase):
         TurmaDisciplina.objects.create(
             turma=self.turma, disciplina=self.disciplina, professor=self.professor
         )
-        for tipo in ("secretario", "professor", "responsavel", "aluno"):
+        for tipo in ("professor", "responsavel", "aluno"):
             with self.subTest(tipo=tipo):
                 self.autenticar(tipo)
                 self.assertEqual(
