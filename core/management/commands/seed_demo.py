@@ -77,6 +77,25 @@ SOBRENOMES = [
     'Horta', 'Leal', 'Macedo', 'Paiva', 'Quintela', 'Rezende', 'Siqueira', 'Toledo',
 ]
 
+# Notificações fictícias para cada conta de demo: (tipo, título, mensagem, link interno).
+NOTIFICACOES_DEMO = {
+    'admin': [
+        ('sistema', 'Bem-vindo(a) à demonstração', 'Explore a gestão de usuários e permissões.', '/usuarios'),
+    ],
+    'secretaria': [
+        ('matricula', 'Matrículas pendentes', 'Há matrículas pendentes de conferência (dados fictícios).', None),
+        ('sistema', 'Troque sua senha', 'Por segurança, defina uma senha pessoal no seu perfil.', '/perfil'),
+    ],
+    'professor': [
+        ('evento', 'Reunião de pais e mestres', 'Confira a lista dos seus alunos antes da reunião.', '/alunos'),
+        ('sistema', 'Troque sua senha', 'Por segurança, defina uma senha pessoal no seu perfil.', '/perfil'),
+    ],
+    'responsavel': [
+        ('documento', 'Declaração disponível', 'A declaração de matrícula dos seus filhos já está disponível.', '/dashboard'),
+        ('evento', 'Reunião de pais e mestres', 'Participe da reunião na próxima semana (evento fictício).', None),
+    ],
+}
+
 CONTAS_DEMO = {
     'admin': 'admin',
     'secretaria': 'secretario',
@@ -241,7 +260,7 @@ class Command(BaseCommand):
             (7, 'Reunião de pais e mestres', 'reuniao'),
             (15, 'Feira de Ciências', 'evento_escolar'),
             (30, 'Conselho de classe', 'reuniao'),
-            (45, 'Festa junina da escola', 'evento_escolar'),
+            (45, 'Mostra cultural', 'evento_escolar'),
         ]:
             inicio = hoje + timedelta(days=dias)
             Evento.objects.create(
@@ -252,11 +271,10 @@ class Command(BaseCommand):
                 tipo=tipo,
             )
 
-        Notificacao.objects.create(
-            usuario=contas['secretaria'],
-            tipo='matricula',
-            titulo='Matrículas pendentes',
-            mensagem='Há matrículas pendentes de conferência (dados fictícios).',
-        )
+        for chave, avisos in NOTIFICACOES_DEMO.items():
+            for tipo, titulo, mensagem, link in avisos:
+                Notificacao.objects.create(
+                    usuario=contas[chave], tipo=tipo, titulo=titulo, mensagem=mensagem, link=link
+                )
         registrar_atividade(contas['admin'], 'Base de demonstração criada', 'Dados fictícios gerados por seed_demo.')
         return contas
