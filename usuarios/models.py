@@ -28,6 +28,13 @@ class CustomUser(AbstractUser):
         related_query_name='customuser',
     )
     
+    def save(self, *args, **kwargs):
+        # Superusuário tem controle total: o perfil exibido é sempre o de administrador
+        # (o createsuperuser não pergunta o tipo e usaria o padrão 'aluno').
+        if self.is_superuser:
+            self.tipo = 'admin'
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return self.username
 
