@@ -39,15 +39,29 @@ class SeedDemoTestCase(APITestCase):
         self.assertGreater(por_disciplina.professores().count(), 1)
         self.assertTrue(TurmaDisciplina.objects.exists())
 
-    def test_contas_de_demo_entram_com_a_senha_informada(self):
+    def entrar(self, username, senha):
+        return self.client.post("/api/token/", {"username": username, "password": senha}, format="json")
+
+    def test_contas_publicas_entram_com_a_senha_publica(self):
         self.seed()
 
-        for username in ("admin_demo", "secretaria_demo", "professor_demo", "responsavel_demo"):
+        for username in ("secretaria_demo", "professor_demo", "responsavel_demo"):
             with self.subTest(username=username):
-                response = self.client.post(
-                    "/api/token/", {"username": username, "password": self.senha}, format="json"
-                )
-                self.assertEqual(response.status_code, 200)
+                self.assertEqual(self.entrar(username, self.senha).status_code, 200)
+
+    def test_admin_demo_usa_senha_propria_e_secreta(self):
+        senha_admin = secrets.token_urlsafe(16)
+        self.seed(senha_admin=senha_admin)
+
+        self.assertEqual(self.entrar("admin_demo", senha_admin).status_code, 200)
+        self.assertEqual(self.entrar("admin_demo", self.senha).status_code, 401)
+
+    def test_admin_demo_sem_senha_propria_fica_sem_login(self):
+        saida = self.seed()
+
+        self.assertFalse(CustomUser.objects.get(username="admin_demo").has_usable_password())
+        self.assertEqual(self.entrar("admin_demo", self.senha).status_code, 401)
+        self.assertIn("admin_demo criado sem login", saida)
 
     def test_senha_nao_aparece_na_saida_quando_informada(self):
         saida = self.seed()

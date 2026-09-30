@@ -4,6 +4,7 @@ Uso:
     python manage.py seed_demo                  # gera uma senha e mostra uma única vez
     python manage.py seed_demo --senha "..."    # ou use a variável DEMO_PASSWORD
     python manage.py seed_demo --reset          # apaga os dados escolares e recria
+    python manage.py seed_demo --senha-admin "..."  # ou DEMO_ADMIN_PASSWORD (senha secreta do admin_demo)
 
 Nenhuma senha é gravada no repositório. Os CPFs gerados têm dígito verificador
 propositalmente inválido, para nunca coincidirem com o CPF de uma pessoa real.
@@ -116,7 +117,11 @@ class Command(BaseCommand):
     help = 'Cria uma base de demonstração com dados fictícios e contas de demo.'
 
     def add_arguments(self, parser):
-        parser.add_argument('--senha', help='Senha das contas de demonstração (ou DEMO_PASSWORD).')
+        parser.add_argument('--senha', help='Senha das contas públicas de demo (ou DEMO_PASSWORD).')
+        parser.add_argument(
+            '--senha-admin',
+            help='Senha secreta do admin_demo (ou DEMO_ADMIN_PASSWORD). Sem ela, o admin_demo fica sem login.',
+        )
         parser.add_argument(
             '--reset',
             action='store_true',
@@ -143,7 +148,8 @@ class Command(BaseCommand):
         with transaction.atomic():
             if options['reset']:
                 self._apagar_dados()
-            contas = self._criar(senha)
+            senha_admin = options['senha_admin'] or os.environ.get('DEMO_ADMIN_PASSWORD')
+            contas = self._criar(senha, senha_admin)
 
         self.stdout.write(self.style.SUCCESS('Base de demonstração criada (dados fictícios).'))
         self.stdout.write('Contas de demonstração: ' + ', '.join(c.username for c in contas.values()))
@@ -151,6 +157,8 @@ class Command(BaseCommand):
             self.stdout.write(self.style.WARNING(
                 f'Senha gerada (mostrada só agora, não é salva em lugar nenhum): {senha}'
             ))
+        if not contas['admin'].has_usable_password():
+            self.stdout.write('admin_demo criado sem login: informe --senha-admin ou DEMO_ADMIN_PASSWORD para habilitá-lo.')
 
     def _apagar_dados(self):
         demo = CustomUser.objects.filter(username__endswith=SUFIXO_DEMO)
@@ -159,7 +167,7 @@ class Command(BaseCommand):
             modelo.objects.all().delete()
         demo.delete()
 
-    def _criar(self, senha):
+    def _criar(self, senha, senha_admin=None):
         rng = random.Random(ANO_LETIVO)
 
         contas = {}
@@ -170,7 +178,13 @@ class Command(BaseCommand):
                 email=f'{chave}{SUFIXO_DEMO}@example.com',
                 tipo=tipo,
             )
-            user.set_password(senha)
+            # O admin tem senha própria (secreta): a das demais contas pode ser pública.
+            if chave != 'admin':
+                user.set_password(senha)
+            elif senha_admin:
+                user.set_password(senha_admin)
+            else:
+                user.set_unusable_password()
             user.save()
             contas[chave] = user
 

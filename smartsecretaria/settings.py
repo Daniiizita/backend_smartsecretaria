@@ -224,6 +224,18 @@ REST_FRAMEWORK = {
 _EM_TESTE = len(sys.argv) > 1 and sys.argv[1] == 'test'
 LOGIN_THROTTLE_RATE = os.getenv('LOGIN_THROTTLE_RATE', '10000/min' if _EM_TESTE else '10/min')
 
+# Demonstração pública: as contas *_demo (com senha divulgada) ficam protegidas contra alterações.
+DEMO_MODE = env_bool('DEMO_MODE', False)
+DEMO_SUFIXO = '_demo'
+
+# Erros no console, para aparecerem nos logs do provedor.
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {'console': {'class': 'logging.StreamHandler'}},
+    'root': {'handlers': ['console'], 'level': os.getenv('LOG_LEVEL', 'WARNING')},
+}
+
 
 SIMPLE_JWT = {
     # Tempo de expiração do token de acesso

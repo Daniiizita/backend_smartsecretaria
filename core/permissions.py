@@ -85,3 +85,25 @@ class IsGestorOrReadOnly(BasePermission):
         if request.method in ('GET', 'HEAD', 'OPTIONS'):
             return bool(request.user and request.user.is_authenticated)
         return is_gestor(request.user)
+
+
+def conta_de_demo_protegida(user):
+    """No modo demonstração, as contas *_demo são públicas e não podem ser alteradas."""
+    from django.conf import settings
+
+    return bool(
+        getattr(settings, 'DEMO_MODE', False)
+        and user is not None
+        and getattr(user, 'username', '').endswith(getattr(settings, 'DEMO_SUFIXO', '_demo'))
+    )
+
+
+class ProtegeContasDeDemo(BasePermission):
+    """Impede editar, desativar, trocar a senha ou excluir contas públicas de demonstração."""
+
+    message = 'Contas de demonstração não podem ser alteradas.'
+
+    def has_object_permission(self, request, view, obj):
+        if request.method in ('GET', 'HEAD', 'OPTIONS'):
+            return True
+        return not conta_de_demo_protegida(obj)
