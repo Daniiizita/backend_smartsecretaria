@@ -15,9 +15,12 @@ class ProfessorSerializer(serializers.ModelSerializer):
 
 
 class ProfessorBasicoSerializer(serializers.ModelSerializer):
-    """Dados básicos para colegas e responsáveis: sem documentos nem contatos pessoais."""
+    """Dados básicos para colegas e responsáveis: sem documentos nem contatos pessoais.
+
+    A foto foi liberada pela proprietária do projeto para identificação na escola.
+    """
 
     class Meta:
         model = Professor
-        fields = ['id', 'nome', 'disciplinas']
+        fields = ['id', 'nome', 'disciplinas', 'foto']
         read_only_fields = fields
