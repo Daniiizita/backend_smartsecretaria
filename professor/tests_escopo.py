@@ -9,7 +9,7 @@ from turma.models import Turma, TurmaDisciplina
 from usuarios.models import CustomUser
 from .models import Professor
 
-CAMPOS_BASICOS = {"id", "nome", "disciplinas"}
+CAMPOS_BASICOS = {"id", "nome", "disciplinas", "foto"}
 
 
 class ProfessorEscopoTestCase(APITestCase):
