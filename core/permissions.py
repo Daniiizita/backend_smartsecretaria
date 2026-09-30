@@ -62,3 +62,14 @@ class ProtectSuperuser(BasePermission):
         if request.method in ('GET', 'HEAD', 'OPTIONS'):
             return True
         return not obj.is_superuser or request.user.is_superuser
+
+
+class IsAdminOrReadOnly(BasePermission):
+    """Leitura para autenticados; escrita somente para administradores."""
+
+    message = 'Apenas administradores podem alterar estes dados.'
+
+    def has_permission(self, request, view):
+        if request.method in ('GET', 'HEAD', 'OPTIONS'):
+            return bool(request.user and request.user.is_authenticated)
+        return is_admin(request.user)
