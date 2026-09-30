@@ -24,10 +24,6 @@ coverage.xml
 *.mo
 *.pot
 
-# Migrations (opcional manter apenas as aplicadas)
-**/migrations/*.py
-!**/migrations/__init__.py
-
 # Banco de dados local
 db.sqlite3
 *.db
