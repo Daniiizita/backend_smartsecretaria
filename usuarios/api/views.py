@@ -2,6 +2,7 @@ from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from core.throttling import LoginRateThrottle
 from core.permissions import (
     CanManageUserAccounts,
     ProtectSuperuser,
@@ -38,6 +39,7 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         url_path='me/senha',
         permission_classes=[IsAuthenticated],
         serializer_class=TrocarSenhaSerializer,
+        throttle_classes=[LoginRateThrottle],
     )
     def trocar_senha(self, request):
         serializer = self.get_serializer(data=request.data)
