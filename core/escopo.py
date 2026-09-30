@@ -26,6 +26,20 @@ def turmas_visiveis(user):
     return Turma.objects.none()
 
 
+def alunos_visiveis(user):
+    from aluno.models import Aluno
+    from turma.models import Turma
+
+    if is_gestor(user):
+        return Aluno.objects.all()
+    professor = professor_do_usuario(user)
+    if professor is not None:
+        return Aluno.objects.filter(turma__in=Turma.objects.do_professor(professor))
+    if getattr(user, 'tipo', None) == 'responsavel':
+        return user.dependentes.all()
+    return Aluno.objects.none()
+
+
 def professores_visiveis(user):
     from django.db.models import Q
     from professor.models import Professor

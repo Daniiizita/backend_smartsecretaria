@@ -1,9 +1,23 @@
 from rest_framework import viewsets
-from core.permissions import IsGestorOrReadOnly
-from aluno.models import Aluno
-from .serializers import AlunoSerializer
+from core.escopo import alunos_visiveis
+from core.permissions import IsGestorOrReadOnly, is_gestor
+from .serializers import AlunoPedagogicoSerializer, AlunoResponsavelSerializer, AlunoSerializer
 
 class AlunoViewSet(viewsets.ModelViewSet):
-    queryset = Aluno.objects.all().order_by('id')
-    serializer_class = AlunoSerializer
+    """
+    Gestão escolar: CRUD completo. Professor: alunos das suas turmas, só com
+    os dados pedagógicos. Responsável: os próprios dependentes. Somente leitura
+    para quem não é da gestão.
+    """
     permission_classes = [IsGestorOrReadOnly]
+
+    def get_queryset(self):
+        return alunos_visiveis(self.request.user).order_by('id')
+
+    def get_serializer_class(self):
+        user = getattr(self.request, 'user', None)
+        if is_gestor(user):
+            return AlunoSerializer
+        if getattr(user, 'tipo', None) == 'responsavel':
+            return AlunoResponsavelSerializer
+        return AlunoPedagogicoSerializer
