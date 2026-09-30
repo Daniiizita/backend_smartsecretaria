@@ -52,10 +52,14 @@ class MatrizDePermissoesTestCase(APITestCase):
         for url in ("/api/professor/", "/api/aluno/", "/api/turma/", "/api/turma/atribuicoes/"):
             self.verificar(url, "post", GESTAO)
 
-    def test_matriculas_documentos_e_dashboard_so_a_gestao(self):
+    def test_matriculas_e_documentos_leitura_recortada_escrita_da_gestao(self):
+        # A leitura passa pela autorização para todos, mas o recorte por linha
+        # (core.escopo) só devolve registros à gestão e aos responsáveis.
         for url in ("/api/matricula/", "/api/documentos/"):
-            self.verificar(url, "get", GESTAO)
+            self.verificar(url, "get", set(PAPEIS))
             self.verificar(url, "post", GESTAO)
+
+    def test_dashboard_so_a_gestao(self):
         self.verificar("/api/dashboard/", "get", GESTAO)
 
     def test_areas_de_sistema_so_o_admin(self):
