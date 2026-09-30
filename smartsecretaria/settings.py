@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 
 from pathlib import Path
 import os
+import sys
 import dotenv
 # Configurações do SimpleJWT
 from datetime import timedelta
@@ -137,6 +138,11 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
+
+# Somente em `manage.py test`: hash rápido para a suíte não gastar tempo com PBKDF2.
+# Nunca afeta o servidor nem senhas reais.
+if len(sys.argv) > 1 and sys.argv[1] == 'test':
+    PASSWORD_HASHERS = ['django.contrib.auth.hashers.MD5PasswordHasher']
 
 
 # Internationalization
