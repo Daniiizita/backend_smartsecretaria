@@ -40,6 +40,15 @@ def alunos_visiveis(user):
     return Aluno.objects.none()
 
 
+def registros_de_alunos_visiveis(queryset, user):
+    """Matrículas, documentos etc.: gestão vê tudo; responsável, só os dos dependentes."""
+    if is_gestor(user):
+        return queryset
+    if getattr(user, 'tipo', None) == 'responsavel':
+        return queryset.filter(aluno__responsaveis=user).distinct()
+    return queryset.none()
+
+
 def professores_visiveis(user):
     from django.db.models import Q
     from professor.models import Professor
