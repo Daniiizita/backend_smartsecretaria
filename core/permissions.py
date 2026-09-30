@@ -22,6 +22,11 @@ def is_secretario(user):
     )
 
 
+def is_gestor(user):
+    """Gestão escolar: administradores e secretários administram a escola."""
+    return is_admin(user) or is_secretario(user)
+
+
 def tipos_de_conta_gerenciaveis(user):
     """Tipos de conta que o usuário pode gerenciar; None significa todos."""
     if is_admin(user):
@@ -64,12 +69,19 @@ class ProtectSuperuser(BasePermission):
         return not obj.is_superuser or request.user.is_superuser
 
 
-class IsAdminOrReadOnly(BasePermission):
-    """Leitura para autenticados; escrita somente para administradores."""
+class IsGestor(BasePermission):
+    message = 'Apenas a gestão escolar (administração e secretaria) pode acessar.'
 
-    message = 'Apenas administradores podem alterar estes dados.'
+    def has_permission(self, request, view):
+        return is_gestor(request.user)
+
+
+class IsGestorOrReadOnly(BasePermission):
+    """Leitura para autenticados; escrita somente para a gestão escolar."""
+
+    message = 'Apenas a gestão escolar (administração e secretaria) pode alterar estes dados.'
 
     def has_permission(self, request, view):
         if request.method in ('GET', 'HEAD', 'OPTIONS'):
             return bool(request.user and request.user.is_authenticated)
-        return is_admin(request.user)
+        return is_gestor(request.user)

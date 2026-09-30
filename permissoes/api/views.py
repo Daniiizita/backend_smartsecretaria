@@ -1,20 +1,20 @@
 from rest_framework import viewsets
-from rest_framework.permissions import IsAuthenticated
-from ..models import PerfilAcesso, TentativaLogin  # troque "Aluno"
+from core.permissions import IsAdmin
+from ..models import PerfilAcesso, TentativaLogin
 from .serializers import PerfilAcessoSerializer, TentativaLoginSerializer
 
 class PerfilAcessoViewSet(viewsets.ModelViewSet):
     """
-    ViewSet base para CRUD completo do modelo.
+    Perfis de acesso: configuração do sistema, restrita a administradores.
     """
-    queryset = PerfilAcesso.objects.all().order_by('id')  # ajuste a ordenação se precisar
+    queryset = PerfilAcesso.objects.all().order_by('id')
     serializer_class = PerfilAcessoSerializer
-    permission_classes = [IsAuthenticated]  # exige JWT
+    permission_classes = [IsAdmin]
 
-class TentativaLoginViewSet(viewsets.ModelViewSet):
+class TentativaLoginViewSet(viewsets.ReadOnlyModelViewSet):
     """
-    ViewSet base para CRUD completo do modelo.
+    Registro de tentativas de login: somente leitura, restrito a administradores.
     """
-    queryset = TentativaLogin.objects.all().order_by('id')  # ajuste a ordenação se precisar
-    serializer_class =  TentativaLoginSerializer
-    permission_classes = [IsAuthenticated]  # exige JW
+    queryset = TentativaLogin.objects.all().order_by('id')
+    serializer_class = TentativaLoginSerializer
+    permission_classes = [IsAdmin]

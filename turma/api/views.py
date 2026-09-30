@@ -1,8 +1,7 @@
 from rest_framework import viewsets
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from core.permissions import IsAdminOrReadOnly
+from core.permissions import IsGestorOrReadOnly
 from ..models import Turma, TurmaDisciplina, SERIE_CHOICES, NIVEL_CHOICES, TURMA_LETRA_CHOICES, PERIODO_CHOICES
 from .serializers import TurmaDisciplinaSerializer, TurmaSerializer
 
@@ -12,7 +11,7 @@ class TurmaViewSet(viewsets.ModelViewSet):
     """
     queryset = Turma.objects.all().order_by('id')
     serializer_class = TurmaSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsGestorOrReadOnly]
 
     @action(detail=False, methods=['get'], url_path='choices')
     def choices(self, request):
@@ -28,4 +27,4 @@ class TurmaDisciplinaViewSet(viewsets.ModelViewSet):
     """Atribuição de professores às disciplinas de cada turma."""
     queryset = TurmaDisciplina.objects.select_related('turma', 'disciplina', 'professor').order_by('id')
     serializer_class = TurmaDisciplinaSerializer
-    permission_classes = [IsAdminOrReadOnly]
+    permission_classes = [IsGestorOrReadOnly]
