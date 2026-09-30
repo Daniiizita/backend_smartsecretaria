@@ -23,21 +23,29 @@ dotenv.load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
+def env_bool(nome, padrao=False):
+    valor = os.getenv(nome)
+    return padrao if valor is None else valor.strip().lower() in ('1', 'true', 'sim', 'yes', 'on')
+
+
+def env_lista(nome, padrao=''):
+    """Lista separada por vírgulas, ignorando itens vazios."""
+    return [item.strip() for item in os.getenv(nome, padrao).split(',') if item.strip()]
+
+
+# Toda configuração que muda entre ambientes vem de variáveis de ambiente
+# (arquivo .env local ou painel do provedor). Os padrões servem ao desenvolvimento local.
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = env_bool('DEBUG', False)
 
-ALLOWED_HOSTS = [
-    'localhost',
-    '127.0.0.1',
-    'web',
-    '0.0.0.0',# Nome do serviço no docker-compose
-]
+ALLOWED_HOSTS = env_lista('ALLOWED_HOSTS', 'localhost,127.0.0.1')
+# O Render informa o domínio público do serviço nesta variável.
+if os.getenv('RENDER_EXTERNAL_HOSTNAME'):
+    ALLOWED_HOSTS.append(os.environ['RENDER_EXTERNAL_HOSTNAME'])
 
 
 # Application definition
@@ -49,10 +57,13 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
-    
+    'django.contrib.staticfiles',
+
     # Aplicativos de terceiros
     'rest_framework',
     'rest_framework_simplejwt',
+    # Invalida refresh tokens já usados (rotação) e no logout.
+    'rest_framework_simplejwt.token_blacklist',
     'drf_spectacular',
     'corsheaders',
     
@@ -77,6 +88,8 @@ MIDDLEWARE = [
     
     # Outros middlewares existentes
     'django.middleware.security.SecurityMiddleware',
+    # Serve os arquivos estáticos (admin) em produção, sem servidor extra.
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -113,7 +126,8 @@ WSGI_APPLICATION = 'smartsecretaria.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'data' / 'db.sqlite3', # Aponta para o volume
+        # Caminho configurável: na demo pública o banco é recriado a cada início.
+        'NAME': os.getenv('SQLITE_PATH', str(BASE_DIR / 'data' / 'db.sqlite3')),
     },
 
     #NOTA: instalar o pacote mysqlclient para usar o banco de dados MySQL
@@ -158,7 +172,27 @@ USE_TZ = True
 
 
 # Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/4.2/howto/static-files/
+# https://docs.djangoproject.com/en/5.2/howto/static-files/
+STATIC_URL = '/static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+STORAGES = {
+    'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
+    'staticfiles': {'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage'},
+}
+
+# Uploads (fotos). No plano gratuito do Render o disco é temporário.
+MEDIA_URL = '/media/'
+MEDIA_ROOT = Path(os.getenv('MEDIA_ROOT', str(BASE_DIR / 'media')))
+
+# HTTPS atrás do proxy do provedor (Render). Ligue com SECURE_HTTPS=true em produção.
+if env_bool('SECURE_HTTPS', False):
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = int(os.getenv('SECURE_HSTS_SECONDS', '3600'))
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    SECURE_REFERRER_POLICY = 'same-origin'
 
 
 # Default primary key field type
@@ -181,13 +215,32 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'EXCEPTION_HANDLER': 'core.exceptions.custom_exception_handler',
+    # Atrás do proxy do provedor, quantos proxies adicionam X-Forwarded-For (identifica o IP real).
+    'NUM_PROXIES': int(os.environ['THROTTLE_NUM_PROXIES']) if os.getenv('THROTTLE_NUM_PROXIES') else None,
+}
+
+# Tentativas de login por IP (formato do DRF: 10/min, 30/hour...).
+# Em `manage.py test` o limite padrão é alto: todos os testes vêm do mesmo IP.
+_EM_TESTE = len(sys.argv) > 1 and sys.argv[1] == 'test'
+LOGIN_THROTTLE_RATE = os.getenv('LOGIN_THROTTLE_RATE', '10000/min' if _EM_TESTE else '10/min')
+
+# Demonstração pública: as contas *_demo (com senha divulgada) ficam protegidas contra alterações.
+DEMO_MODE = env_bool('DEMO_MODE', False)
+DEMO_SUFIXO = '_demo'
+
+# Erros no console, para aparecerem nos logs do provedor.
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {'console': {'class': 'logging.StreamHandler'}},
+    'root': {'handlers': ['console'], 'level': os.getenv('LOG_LEVEL', 'WARNING')},
 }
 
 
 SIMPLE_JWT = {
     # Tempo de expiração do token de acesso
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=120),  # 2h de validade
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),     # 7 dias de validade
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=int(os.getenv('JWT_ACCESS_MINUTES', '30'))),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=int(os.getenv('JWT_REFRESH_DAYS', '7'))),
     
     # Renovação automática e segurança extra
     'ROTATE_REFRESH_TOKENS': True,      # gera novo refresh token a cada uso
@@ -216,10 +269,11 @@ SPECTACULAR_SETTINGS = {
     'SERVE_INCLUDE_SCHEMA': False,
 }
 
-# Configurações do CORS (se você estiver usando django-cors-headers)
-CORS_ALLOW_ALL_ORIGINS = False  # Defina como True durante o desenvolvimento se necessário
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",  # Frontend React
-    "http://127.0.0.1:3000",
-    "http://localhost:5173",  # Frontend Vite
-]
+# CORS: endereços do frontend autorizados a chamar a API (ex.: o domínio da Vercel).
+CORS_ALLOW_ALL_ORIGINS = False
+CORS_ALLOWED_ORIGINS = env_lista('CORS_ALLOWED_ORIGINS', 'http://localhost:5173')
+
+# Origens confiáveis para formulários com CSRF (painel /admin em HTTPS).
+CSRF_TRUSTED_ORIGINS = env_lista('CSRF_TRUSTED_ORIGINS')
+if os.getenv('RENDER_EXTERNAL_HOSTNAME'):
+    CSRF_TRUSTED_ORIGINS.append(f"https://{os.environ['RENDER_EXTERNAL_HOSTNAME']}")

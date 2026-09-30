@@ -1,0 +1,32 @@
+# Blueprint do Render: demonstração pública e gratuita do SmartSecretaria (API).
+# Dados 100% fictícios: o banco SQLite é recriado com o seed_demo a cada início
+# (deploy ou quando o serviço gratuito "acorda"), então alterações de visitantes somem.
+services:
+  - type: web
+    name: smartsecretaria-api
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput
+    startCommand: >-
+      python manage.py migrate --noinput &&
+      python manage.py seed_demo --reset --sim &&
+      gunicorn smartsecretaria.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 60
+    healthCheckPath: /api/saude/
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: "false"
+      - key: SECURE_HTTPS
+        value: "true"
+      - key: DEMO_MODE
+        value: "true"
+      - key: SQLITE_PATH
+        value: /tmp/smartsecretaria-demo.sqlite3
+      # Preencha no painel do Render (não ficam no repositório):
+      - key: CORS_ALLOWED_ORIGINS   # ex.: https://smartsecretaria.vercel.app
+        sync: false
+      - key: DEMO_PASSWORD          # senha pública das contas de demo (a mesma do VITE_DEMO_PASSWORD)
+        sync: false
+      - key: DEMO_ADMIN_PASSWORD    # senha secreta do admin_demo
+        sync: false

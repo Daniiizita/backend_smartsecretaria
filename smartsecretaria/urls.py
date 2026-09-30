@@ -19,7 +19,10 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
+from core.api.saude import saude
+from core.throttling import LoginRateThrottle
 from rest_framework_simplejwt.views import (
+    TokenBlacklistView,
     TokenObtainPairView,
     TokenRefreshView,
 )
@@ -30,8 +33,10 @@ urlpatterns = [
     path('admin/', admin.site.urls),
 
     #API Token
-    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('api/token/', TokenObtainPairView.as_view(throttle_classes=[LoginRateThrottle]), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    # Logout: invalida o refresh token informado.
+    path('api/token/blacklist/', TokenBlacklistView.as_view(), name='token_blacklist'),
 
 
     #API Routes
@@ -46,6 +51,7 @@ urlpatterns = [
     path('api/turma/', include('turma.api.urls')),
     path('api/usuarios/', include('usuarios.api.urls')),
     path('api/dashboard/', include('core.api.urls')),
+    path('api/saude/', saude, name='saude'),
     path('api/disciplina/', include('disciplina.api.urls')),
     
 

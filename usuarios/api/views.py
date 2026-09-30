@@ -1,12 +1,16 @@
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from core.permissions import (
     CanManageUserAccounts,
     ProtectSuperuser,
+    ProtegeContasDeDemo,
+    conta_de_demo_protegida,
     tipos_de_conta_gerenciaveis,
 )
+from core.throttling import LoginRateThrottle
 from ..models import CustomUser
 from .serializers import CustomUserSerializer, MeuPerfilSerializer, TrocarSenhaSerializer
 
@@ -17,7 +21,7 @@ class CustomUserViewSet(viewsets.ModelViewSet):
     Qualquer usuário autenticado consulta (sem editar) o próprio perfil em /me/.
     """
     serializer_class = CustomUserSerializer
-    permission_classes = [IsAuthenticated, CanManageUserAccounts, ProtectSuperuser]
+    permission_classes = [IsAuthenticated, CanManageUserAccounts, ProtectSuperuser, ProtegeContasDeDemo]
 
     def get_queryset(self):
         queryset = CustomUser.objects.all().order_by('id')
@@ -38,8 +42,11 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         url_path='me/senha',
         permission_classes=[IsAuthenticated],
         serializer_class=TrocarSenhaSerializer,
+        throttle_classes=[LoginRateThrottle],
     )
     def trocar_senha(self, request):
+        if conta_de_demo_protegida(request.user):
+            raise PermissionDenied('Contas de demonstração não podem trocar a senha.')
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save()

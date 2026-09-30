@@ -74,6 +74,10 @@ python manage.py test
 
 A integração contínua (GitHub Actions) roda `check`, verificação de migrações pendentes, os testes e `pip-audit` a cada push ou pull request para `develop` e `main`.
 
+## Deploy da demonstração
+
+O passo a passo para publicar a demo gratuita (API no Render e frontend na Vercel) está em [DEPLOY.md](DEPLOY.md). Todas as configurações vêm de variáveis de ambiente, documentadas em [.env.example](.env.example).
+
 ## Licença e autoria
 
 Copyright (c) 2025 Danielle. Os termos de uso estão em [LICENSE](LICENSE). Uso comercial exige autorização prévia por escrito do titular dos direitos.

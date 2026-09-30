@@ -1,7 +1,7 @@
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
-from core.permissions import tipos_de_conta_gerenciaveis
+from core.permissions import conta_de_demo_protegida, tipos_de_conta_gerenciaveis
 from ..models import CustomUser
 
 
@@ -32,6 +32,14 @@ class CustomUserSerializer(serializers.ModelSerializer):
             'password',
         ]
         read_only_fields = ['is_staff', 'is_superuser', 'last_login', 'date_joined']
+
+    def validate_username(self, value):
+        # No modo demonstração o sufixo _demo é reservado às contas públicas protegidas.
+        if conta_de_demo_protegida(CustomUser(username=value)) and (
+            self.instance is None or self.instance.username != value
+        ):
+            raise serializers.ValidationError('O sufixo "_demo" é reservado às contas de demonstração.')
+        return value
 
     def validate_tipo(self, value):
         request = self.context.get('request')
