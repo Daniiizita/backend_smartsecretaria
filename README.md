@@ -72,6 +72,8 @@ Essas regras refletem uma demonstração de portfólio. Um uso real, com dados d
 python manage.py test
 ```
 
+A integração contínua (GitHub Actions) roda `check`, verificação de migrações pendentes, os testes e `pip-audit` a cada push ou pull request para `develop` e `main`.
+
 ## Licença e autoria
 
 Copyright (c) 2025 Danielle. Os termos de uso estão em [LICENSE](LICENSE). Uso comercial exige autorização prévia por escrito do titular dos direitos.
