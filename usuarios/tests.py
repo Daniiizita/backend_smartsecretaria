@@ -188,3 +188,120 @@ class CustomUserPermissionTestCase(APITestCase):
                 user.refresh_from_db()
                 self.assertNotEqual(user.first_name, "Alterado")
                 self.assertNotEqual(user.tipo, "admin")
+
+
+class TrocarSenhaTestCase(APITestCase):
+    """Todo usuário autenticado pode trocar a própria senha, e somente ela."""
+
+    url = "/api/usuarios/me/senha/"
+
+    def setUp(self):
+        self.senha_atual = secrets.token_urlsafe(16)
+        self.user = CustomUser.objects.create_user(
+            username="professor_senha",
+            password=self.senha_atual,
+            tipo="professor",
+            first_name="Original",
+        )
+
+    def test_anonimo_nao_troca_senha(self):
+        response = self.client.post(
+            self.url,
+            {"senha_atual": self.senha_atual, "nova_senha": secrets.token_urlsafe(16)},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_todos_os_papeis_trocam_a_propria_senha(self):
+        for tipo in ("admin", "secretario", "professor", "responsavel"):
+            with self.subTest(tipo=tipo):
+                senha = secrets.token_urlsafe(16)
+                user = CustomUser.objects.create_user(
+                    username=f"troca_{tipo}", password=senha, tipo=tipo
+                )
+                nova_senha = secrets.token_urlsafe(16)
+                self.client.force_authenticate(user=user)
+
+                response = self.client.post(
+                    self.url,
+                    {"senha_atual": senha, "nova_senha": nova_senha},
+                    format="json",
+                )
+
+                self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+                user.refresh_from_db()
+                self.assertTrue(user.check_password(nova_senha))
+                self.assertFalse(user.check_password(senha))
+
+    def test_senha_atual_incorreta_e_rejeitada(self):
+        self.client.force_authenticate(user=self.user)
+
+        response = self.client.post(
+            self.url,
+            {"senha_atual": "errada", "nova_senha": secrets.token_urlsafe(16)},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("senha_atual", response.data)
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password(self.senha_atual))
+
+    def test_nova_senha_fraca_e_rejeitada(self):
+        self.client.force_authenticate(user=self.user)
+
+        response = self.client.post(
+            self.url,
+            {"senha_atual": self.senha_atual, "nova_senha": "123"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("nova_senha", response.data)
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password(self.senha_atual))
+
+    def test_troca_de_senha_nao_altera_outros_dados(self):
+        self.client.force_authenticate(user=self.user)
+
+        response = self.client.post(
+            self.url,
+            {
+                "senha_atual": self.senha_atual,
+                "nova_senha": secrets.token_urlsafe(16),
+                "tipo": "admin",
+                "first_name": "Alterado",
+                "is_superuser": True,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.tipo, "professor")
+        self.assertEqual(self.user.first_name, "Original")
+        self.assertFalse(self.user.is_superuser)
+
+    def test_login_funciona_com_a_nova_senha(self):
+        nova_senha = secrets.token_urlsafe(16)
+        self.client.force_authenticate(user=self.user)
+        self.client.post(
+            self.url,
+            {"senha_atual": self.senha_atual, "nova_senha": nova_senha},
+            format="json",
+        )
+        self.client.force_authenticate(user=None)
+
+        antiga = self.client.post(
+            "/api/token/",
+            {"username": "professor_senha", "password": self.senha_atual},
+            format="json",
+        )
+        nova = self.client.post(
+            "/api/token/",
+            {"username": "professor_senha", "password": nova_senha},
+            format="json",
+        )
+
+        self.assertEqual(antiga.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(nova.status_code, status.HTTP_200_OK)

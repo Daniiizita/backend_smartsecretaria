@@ -62,3 +62,28 @@ class CustomUserSerializer(serializers.ModelSerializer):
             user.set_password(password)
             user.save(update_fields=['password'])
         return user
+
+
+class TrocarSenhaSerializer(serializers.Serializer):
+    """Troca da própria senha: exige a senha atual e altera apenas a senha."""
+
+    senha_atual = serializers.CharField(write_only=True, style={'input_type': 'password'})
+    nova_senha = serializers.CharField(write_only=True, style={'input_type': 'password'})
+
+    def validate_senha_atual(self, value):
+        if not self.context['request'].user.check_password(value):
+            raise serializers.ValidationError('Senha atual incorreta.')
+        return value
+
+    def validate_nova_senha(self, value):
+        try:
+            validate_password(value, user=self.context['request'].user)
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError(list(exc.messages))
+        return value
+
+    def save(self):
+        user = self.context['request'].user
+        user.set_password(self.validated_data['nova_senha'])
+        user.save(update_fields=['password'])
+        return user
