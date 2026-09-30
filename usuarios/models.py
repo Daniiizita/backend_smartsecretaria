@@ -9,7 +9,8 @@ class CustomUser(AbstractUser):
         ('aluno', 'Aluno'),
         ('responsavel', 'Responsável'),
     )
-    tipo = models.CharField(max_length=20, choices=TIPOS_USUARIO, default='admin')
+    # Padrão com o menor privilégio: papéis administrativos são sempre explícitos.
+    tipo = models.CharField(max_length=20, choices=TIPOS_USUARIO, default='aluno')
     
     # Evita conflito de nomes com o modelo User do Django
     groups = models.ManyToManyField(

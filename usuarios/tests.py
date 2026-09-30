@@ -305,3 +305,23 @@ class TrocarSenhaTestCase(APITestCase):
 
         self.assertEqual(antiga.status_code, status.HTTP_401_UNAUTHORIZED)
         self.assertEqual(nova.status_code, status.HTTP_200_OK)
+
+
+class TipoPadraoTestCase(APITestCase):
+    def test_usuario_sem_tipo_nao_vira_admin(self):
+        user = CustomUser.objects.create_user(
+            username="sem_tipo", password=secrets.token_urlsafe(16)
+        )
+        self.assertEqual(user.tipo, "aluno")
+
+    def test_conta_criada_pela_api_sem_tipo_nao_vira_admin(self):
+        self.client.force_authenticate(user=criar_usuario("admin_padrao", "admin"))
+
+        response = self.client.post(
+            "/api/usuarios/",
+            {"username": "sem_tipo_api", "password": secrets.token_urlsafe(16)},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["tipo"], "aluno")
