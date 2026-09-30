@@ -113,7 +113,8 @@ class CustomUserPermissionTestCase(APITestCase):
                 self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_demais_papeis_nao_gerenciam_usuarios(self):
-        for user in (self.secretario, self.professor, self.aluno):
+        responsavel = criar_usuario("responsavel", "responsavel")
+        for user in (self.professor, self.aluno, responsavel):
             with self.subTest(user=user.username):
                 self.client.force_authenticate(user=user)
                 self.assertEqual(
@@ -325,3 +326,117 @@ class TipoPadraoTestCase(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data["tipo"], "aluno")
+
+
+class SecretarioContasTestCase(APITestCase):
+    """Secretário gerencia contas de professor, aluno e responsável — e só."""
+
+    def setUp(self):
+        self.secretario = criar_usuario("secretario", "secretario")
+        self.outro_secretario = criar_usuario("outro_secretario", "secretario")
+        self.admin = criar_usuario("diretor", "admin")
+        self.superuser = CustomUser.objects.create_superuser(
+            username="dona", password=secrets.token_urlsafe(16), tipo="professor"
+        )
+        self.gerenciaveis = [
+            criar_usuario("prof", "professor"),
+            criar_usuario("aluno", "aluno"),
+            criar_usuario("resp", "responsavel"),
+        ]
+        self.client.force_authenticate(user=self.secretario)
+
+    def test_lista_apenas_contas_gerenciaveis(self):
+        response = self.client.get("/api/usuarios/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            {u["username"] for u in response.data},
+            {"prof", "aluno", "resp"},
+        )
+
+    def test_cria_contas_dos_tipos_permitidos(self):
+        for tipo in ("professor", "aluno", "responsavel"):
+            with self.subTest(tipo=tipo):
+                response = self.client.post(
+                    "/api/usuarios/",
+                    {
+                        "username": f"novo_{tipo}",
+                        "password": secrets.token_urlsafe(16),
+                        "tipo": tipo,
+                    },
+                    format="json",
+                )
+                self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+    def test_nao_cria_secretario_nem_admin(self):
+        for tipo in ("secretario", "admin"):
+            with self.subTest(tipo=tipo):
+                response = self.client.post(
+                    "/api/usuarios/",
+                    {"username": f"novo_{tipo}", "tipo": tipo},
+                    format="json",
+                )
+                self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+                self.assertIn("tipo", response.data)
+                self.assertFalse(
+                    CustomUser.objects.filter(username=f"novo_{tipo}").exists()
+                )
+
+    def test_nao_promove_conta_gerenciavel(self):
+        prof = self.gerenciaveis[0]
+        for tipo in ("secretario", "admin"):
+            with self.subTest(tipo=tipo):
+                response = self.client.patch(
+                    f"/api/usuarios/{prof.pk}/", {"tipo": tipo}, format="json"
+                )
+                self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        prof.refresh_from_db()
+        self.assertEqual(prof.tipo, "professor")
+
+    def test_edita_desativa_redefine_senha_e_exclui_contas_gerenciaveis(self):
+        prof, aluno, resp = self.gerenciaveis
+        nova_senha = secrets.token_urlsafe(16)
+
+        response = self.client.patch(
+            f"/api/usuarios/{prof.pk}/",
+            {"first_name": "Ana", "is_active": False, "password": nova_senha},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        prof.refresh_from_db()
+        self.assertEqual(prof.first_name, "Ana")
+        self.assertFalse(prof.is_active)
+        self.assertTrue(prof.check_password(nova_senha))
+
+        response = self.client.delete(f"/api/usuarios/{resp.pk}/")
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(CustomUser.objects.filter(pk=resp.pk).exists())
+
+    def test_nao_acessa_contas_de_secretario_admin_ou_superusuario(self):
+        protegidas = (self.secretario, self.outro_secretario, self.admin, self.superuser)
+        for user in protegidas:
+            with self.subTest(user=user.username):
+                url = f"/api/usuarios/{user.pk}/"
+                self.assertEqual(
+                    self.client.get(url).status_code, status.HTTP_404_NOT_FOUND
+                )
+                self.assertEqual(
+                    self.client.patch(
+                        url, {"is_active": False}, format="json"
+                    ).status_code,
+                    status.HTTP_404_NOT_FOUND,
+                )
+                self.assertEqual(
+                    self.client.delete(url).status_code, status.HTTP_404_NOT_FOUND
+                )
+                user.refresh_from_db()
+                self.assertTrue(user.is_active)
+
+    def test_admin_continua_criando_qualquer_tipo(self):
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.post(
+            "/api/usuarios/",
+            {"username": "novo_sec", "password": secrets.token_urlsafe(16), "tipo": "secretario"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
