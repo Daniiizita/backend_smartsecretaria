@@ -1,6 +1,7 @@
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
+from core.permissions import tipos_de_conta_gerenciaveis
 from ..models import CustomUser
 
 
@@ -31,6 +32,15 @@ class CustomUserSerializer(serializers.ModelSerializer):
             'password',
         ]
         read_only_fields = ['is_staff', 'is_superuser', 'last_login', 'date_joined']
+
+    def validate_tipo(self, value):
+        request = self.context.get('request')
+        tipos = tipos_de_conta_gerenciaveis(request.user) if request else None
+        if tipos is not None and value not in tipos:
+            raise serializers.ValidationError(
+                'Você não tem permissão para atribuir este tipo de conta.'
+            )
+        return value
 
     def validate(self, attrs):
         password = attrs.get('password')

@@ -1,5 +1,8 @@
 from rest_framework.permissions import BasePermission
 
+# Tipos de conta que a secretaria pode criar e gerenciar.
+TIPOS_GERENCIADOS_PELO_SECRETARIO = ('professor', 'aluno', 'responsavel')
+
 
 def is_admin(user):
     """Administrador: superusuário do Django ou usuário com tipo 'admin'."""
@@ -10,11 +13,44 @@ def is_admin(user):
     )
 
 
+def is_secretario(user):
+    return bool(
+        user
+        and user.is_authenticated
+        and getattr(user, 'tipo', None) == 'secretario'
+        and not is_admin(user)
+    )
+
+
+def tipos_de_conta_gerenciaveis(user):
+    """Tipos de conta que o usuário pode gerenciar; None significa todos."""
+    if is_admin(user):
+        return None
+    if is_secretario(user):
+        return TIPOS_GERENCIADOS_PELO_SECRETARIO
+    return ()
+
+
 class IsAdmin(BasePermission):
     message = 'Apenas administradores podem realizar esta ação.'
 
     def has_permission(self, request, view):
         return is_admin(request.user)
+
+
+class CanManageUserAccounts(BasePermission):
+    """Admins gerenciam todas as contas; secretários, apenas os tipos permitidos."""
+
+    message = 'Você não tem permissão para gerenciar esta conta.'
+
+    def has_permission(self, request, view):
+        return is_admin(request.user) or is_secretario(request.user)
+
+    def has_object_permission(self, request, view, obj):
+        tipos = tipos_de_conta_gerenciaveis(request.user)
+        if tipos is None:
+            return True
+        return obj.tipo in tipos and not obj.is_superuser
 
 
 class ProtectSuperuser(BasePermission):
