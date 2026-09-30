@@ -167,6 +167,9 @@ USE_TZ = True
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'usuarios.CustomUser'
 
+# Login aceita o nome de usuário ou o email da conta.
+AUTHENTICATION_BACKENDS = ['usuarios.backends.LoginOuEmailBackend']
+
 
 # Configurações do Django REST Framework
 REST_FRAMEWORK = {

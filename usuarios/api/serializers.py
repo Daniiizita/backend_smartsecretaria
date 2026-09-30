@@ -42,6 +42,17 @@ class CustomUserSerializer(serializers.ModelSerializer):
             )
         return value
 
+    def validate_email(self, value):
+        # O email também serve de login, então não pode se repetir entre contas.
+        email = (value or '').strip()
+        if email:
+            repetidos = CustomUser.objects.filter(email__iexact=email)
+            if self.instance is not None:
+                repetidos = repetidos.exclude(pk=self.instance.pk)
+            if repetidos.exists():
+                raise serializers.ValidationError('Já existe uma conta com este email.')
+        return email
+
     def validate(self, attrs):
         password = attrs.get('password')
         if password is not None:
