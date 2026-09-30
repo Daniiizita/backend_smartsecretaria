@@ -55,7 +55,7 @@ class Turma(models.Model):
     serie = models.IntegerField(choices=SERIE_CHOICES)
     turma_letra = models.CharField(max_length=2, choices=TURMA_LETRA_CHOICES, default="A")
     # Regente da turma. Em turmas com professor único, é ele quem leciona todas as disciplinas.
-    professor_responsavel = models.ForeignKey(Professor, on_delete=models.CASCADE)
+    professor_responsavel = models.ForeignKey(Professor, on_delete=models.PROTECT)
     horario_aulas = models.CharField(max_length=100, blank=True, null=True)
     ano = models.IntegerField(default=2023)
     periodo = models.CharField(max_length=20, choices=PERIODO_CHOICES, default="Manhã")

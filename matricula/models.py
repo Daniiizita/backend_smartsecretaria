@@ -12,10 +12,10 @@ class Matricula(models.Model):
     ]
 
     # Campos da Matrícula
-    aluno = models.ForeignKey(Aluno, on_delete=models.CASCADE)
+    aluno = models.ForeignKey(Aluno, on_delete=models.PROTECT)
     data_matricula = models.DateField()
     ano_letivo = models.IntegerField()
-    turma = models.ForeignKey('turma.Turma', on_delete=models.CASCADE)  # Referência à classe Turma no app turma
+    turma = models.ForeignKey('turma.Turma', on_delete=models.PROTECT)  # Referência à classe Turma no app turma
     status = models.CharField(max_length=20, choices=STATUS_CHOICES)
 
     def __str__(self):
