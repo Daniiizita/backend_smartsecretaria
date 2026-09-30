@@ -93,3 +93,14 @@ class SeedDemoTestCase(APITestCase):
         self.assertEqual(len(alunos_do_professor), 12)
         self.assertNotIn("cpf", alunos_do_professor[0])
         self.assertEqual(len(dependentes), 2)
+
+
+class SeedNotificacoesTestCase(APITestCase):
+    def test_toda_conta_de_demo_recebe_notificacoes(self):
+        from notificacoes.models import Notificacao
+
+        call_command("seed_demo", senha=secrets.token_urlsafe(12), stdout=StringIO())
+
+        for username in ("admin_demo", "secretaria_demo", "professor_demo", "responsavel_demo"):
+            with self.subTest(username=username):
+                self.assertTrue(Notificacao.objects.filter(usuario__username=username, lida=False).exists())
