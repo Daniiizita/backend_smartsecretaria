@@ -17,4 +17,7 @@ class NotificacaoViewSet(
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
+        # Na geração do esquema OpenAPI não há usuário real.
+        if getattr(self, 'swagger_fake_view', False):
+            return Notificacao.objects.none()
         return Notificacao.objects.filter(usuario=self.request.user).order_by('-criada_em')
