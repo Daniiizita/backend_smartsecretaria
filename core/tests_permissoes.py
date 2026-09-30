@@ -124,3 +124,21 @@ class NotificacoesTestCase(APITestCase):
 
         self.assertEqual(criar.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
         self.assertEqual(excluir.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
+
+
+class DashboardAtividadesTestCase(APITestCase):
+    def setUp(self):
+        from logs.utils import registrar_atividade
+
+        self.admin = CustomUser.objects.create_user(username="adm", tipo="admin")
+        self.secretario = CustomUser.objects.create_user(username="sec", tipo="secretario")
+        registrar_atividade(self.admin, "Ação auditada")
+
+    def test_so_o_admin_ve_as_atividades_do_log(self):
+        self.client.force_authenticate(user=self.admin)
+        self.assertEqual(len(self.client.get("/api/dashboard/").data["ultimas_atividades"]), 1)
+
+        self.client.force_authenticate(user=self.secretario)
+        response = self.client.get("/api/dashboard/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["ultimas_atividades"], [])
