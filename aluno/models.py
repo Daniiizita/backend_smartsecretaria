@@ -15,7 +15,7 @@ class Aluno(models.Model):
     telefone_contato = models.CharField(max_length=20)
     email = models.EmailField(max_length=254, blank=True, null=True)
     nome_responsavel = models.CharField(max_length=100, blank=True, null=True)
-    turma = models.ForeignKey(Turma, on_delete=models.CASCADE)
+    turma = models.ForeignKey(Turma, on_delete=models.PROTECT)
     foto = models.ImageField(upload_to='alunos/', blank=True, null=True)
     # Contas de login dos responsáveis: o dado é do aluno, o acesso é do responsável.
     responsaveis = models.ManyToManyField(
