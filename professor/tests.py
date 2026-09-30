@@ -1,4 +1,5 @@
 from django.test import TestCase
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
 from usuarios.models import CustomUser
@@ -82,3 +83,15 @@ class ProfessorVinculoUsuarioTestCase(APITestCase):
 
         self.professor.refresh_from_db()
         self.assertIsNone(self.professor.usuario)
+
+
+class ProfessorDataAdmissaoTestCase(APITestCase):
+    def test_criar_sem_data_de_admissao_usa_a_data_de_hoje(self):
+        self.client.force_authenticate(
+            user=CustomUser.objects.create_user(username="admin_data", tipo="admin")
+        )
+
+        response = self.client.post("/api/professor/", {"nome": "Sem data"}, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["data_admissao"], timezone.localdate().isoformat())
