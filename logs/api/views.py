@@ -1,12 +1,12 @@
 from rest_framework import viewsets
-from rest_framework.permissions import IsAuthenticated
-from ..models import LogAtividade  # troque "Aluno"
+from core.permissions import IsAdmin
+from ..models import LogAtividade
 from .serializers import LogSerializer
 
-class LogViewSet(viewsets.ModelViewSet):
+class LogViewSet(viewsets.ReadOnlyModelViewSet):
     """
-    ViewSet base para CRUD completo do modelo.
+    Trilha de auditoria: somente administradores consultam, e ninguém altera pela API.
     """
-    queryset = LogAtividade.objects.all().order_by('id')  # ajuste a ordenação se precisar
+    queryset = LogAtividade.objects.all().order_by('id')
     serializer_class = LogSerializer
-    permission_classes = [IsAuthenticated]  # exige JWT
+    permission_classes = [IsAdmin]

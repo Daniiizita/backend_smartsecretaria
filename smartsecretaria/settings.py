@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 
 from pathlib import Path
 import os
+import sys
 import dotenv
 # Configurações do SimpleJWT
 from datetime import timedelta
@@ -138,6 +139,11 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+# Somente em `manage.py test`: hash rápido para a suíte não gastar tempo com PBKDF2.
+# Nunca afeta o servidor nem senhas reais.
+if len(sys.argv) > 1 and sys.argv[1] == 'test':
+    PASSWORD_HASHERS = ['django.contrib.auth.hashers.MD5PasswordHasher']
+
 
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/
@@ -161,6 +167,9 @@ USE_TZ = True
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'usuarios.CustomUser'
 
+# Login aceita o nome de usuário ou o email da conta.
+AUTHENTICATION_BACKENDS = ['usuarios.backends.LoginOuEmailBackend']
+
 
 # Configurações do Django REST Framework
 REST_FRAMEWORK = {
@@ -171,6 +180,7 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.IsAuthenticated',
     ],
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    'EXCEPTION_HANDLER': 'core.exceptions.custom_exception_handler',
 }
 
 

@@ -42,10 +42,20 @@ PERIODO_CHOICES = [
 ]
 
 
+class TurmaQuerySet(models.QuerySet):
+    def do_professor(self, professor):
+        """Turmas em que o professor é regente ou leciona alguma disciplina."""
+        return self.filter(
+            models.Q(professor_responsavel=professor)
+            | models.Q(atribuicoes__professor=professor)
+        ).distinct()
+
+
 class Turma(models.Model):
     serie = models.IntegerField(choices=SERIE_CHOICES)
     turma_letra = models.CharField(max_length=2, choices=TURMA_LETRA_CHOICES, default="A")
-    professor_responsavel = models.ForeignKey(Professor, on_delete=models.CASCADE)
+    # Regente da turma. Em turmas com professor único, é ele quem leciona todas as disciplinas.
+    professor_responsavel = models.ForeignKey(Professor, on_delete=models.PROTECT)
     horario_aulas = models.CharField(max_length=100, blank=True, null=True)
     ano = models.IntegerField(default=2023)
     periodo = models.CharField(max_length=20, choices=PERIODO_CHOICES, default="Manhã")
@@ -86,6 +96,39 @@ class Turma(models.Model):
             
         super().save(*args, **kwargs)
 
+    objects = TurmaQuerySet.as_manager()
+
+    def professores(self):
+        """Regente e professores das disciplinas da turma."""
+        return Professor.objects.filter(
+            models.Q(pk=self.professor_responsavel_id)
+            | models.Q(atribuicoes__turma=self)
+        ).distinct()
+
     def __str__(self):
         return self.nome
+
+
+class TurmaDisciplina(models.Model):
+    """Quem leciona cada disciplina na turma (uma disciplina, um professor por turma)."""
+
+    turma = models.ForeignKey(Turma, on_delete=models.CASCADE, related_name='atribuicoes')
+    disciplina = models.ForeignKey(
+        'disciplina.Disciplina', on_delete=models.CASCADE, related_name='atribuicoes'
+    )
+    professor = models.ForeignKey(
+        Professor, on_delete=models.CASCADE, related_name='atribuicoes'
+    )
+
+    class Meta:
+        verbose_name = 'Disciplina da turma'
+        verbose_name_plural = 'Disciplinas da turma'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['turma', 'disciplina'], name='uma_atribuicao_por_disciplina_na_turma'
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.turma} - {self.disciplina}: {self.professor}"
 

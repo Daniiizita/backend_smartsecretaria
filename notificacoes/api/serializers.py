@@ -1,7 +1,9 @@
 from rest_framework import serializers
-from ..models import Notificacao # troque "Aluno" pelo modelo do app
+from ..models import Notificacao
 
 class NotificacaoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Notificacao
-        fields = '__all__'  # ou liste explicitamente os campos
+        fields = ['id', 'tipo', 'titulo', 'mensagem', 'link', 'lida', 'criada_em']
+        # Pela API, o destinatário só pode marcar a notificação como lida.
+        read_only_fields = ['tipo', 'titulo', 'mensagem', 'link', 'criada_em']

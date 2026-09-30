@@ -9,7 +9,8 @@ class CustomUser(AbstractUser):
         ('aluno', 'Aluno'),
         ('responsavel', 'Responsável'),
     )
-    tipo = models.CharField(max_length=20, choices=TIPOS_USUARIO, default='admin')
+    # Padrão com o menor privilégio: papéis administrativos são sempre explícitos.
+    tipo = models.CharField(max_length=20, choices=TIPOS_USUARIO, default='aluno')
     
     # Evita conflito de nomes com o modelo User do Django
     groups = models.ManyToManyField(
@@ -27,6 +28,13 @@ class CustomUser(AbstractUser):
         related_query_name='customuser',
     )
     
+    def save(self, *args, **kwargs):
+        # Superusuário tem controle total: o perfil exibido é sempre o de administrador
+        # (o createsuperuser não pergunta o tipo e usaria o padrão 'aluno').
+        if self.is_superuser:
+            self.tipo = 'admin'
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return self.username
 

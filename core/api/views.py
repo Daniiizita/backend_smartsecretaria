@@ -1,6 +1,6 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from core.permissions import IsGestor, is_admin
 from django.utils import timezone
 
 from aluno.models import Aluno
@@ -18,7 +18,7 @@ class DashboardAPIView(APIView):
     """
     API que fornece os dados agregados para o dashboard principal.
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsGestor]
 
     def get(self, request, format=None):
         hoje = timezone.now()
@@ -40,7 +40,11 @@ class DashboardAPIView(APIView):
         ultimos_alunos_qs = Aluno.objects.all().order_by('-id')[:5]
 
         # Últimas atividades do sistema
-        ultimas_atividades_qs = LogAtividade.objects.all().order_by('-data_hora')[:10]
+        # Logs de auditoria são exclusivos da administração; a secretaria recebe lista vazia.
+        if is_admin(request.user):
+            ultimas_atividades_qs = LogAtividade.objects.all().order_by('-data_hora')[:10]
+        else:
+            ultimas_atividades_qs = LogAtividade.objects.none()
 
         # Contadores adicionais
         documentos_mes_atual = Documento.objects.filter(
