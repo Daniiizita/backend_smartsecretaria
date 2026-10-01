@@ -1,5 +1,10 @@
 from django.db import models
+from django.utils import timezone
 from professor.models import Professor
+
+
+def ano_letivo_atual():
+    return timezone.localdate().year
 
 # Constantes para escolha de nível e série
 NIVEL_CHOICES = [
@@ -57,7 +62,7 @@ class Turma(models.Model):
     # Regente da turma. Em turmas com professor único, é ele quem leciona todas as disciplinas.
     professor_responsavel = models.ForeignKey(Professor, on_delete=models.PROTECT)
     horario_aulas = models.CharField(max_length=100, blank=True, null=True)
-    ano = models.IntegerField(default=2023)
+    ano = models.IntegerField(default=ano_letivo_atual)
     periodo = models.CharField(max_length=20, choices=PERIODO_CHOICES, default="Manhã")
     nome = models.CharField(max_length=100, blank=True)
     nivel_ensino_sigla = models.CharField(max_length=10, choices=NIVEL_CHOICES, blank=True)
@@ -97,6 +102,12 @@ class Turma(models.Model):
         super().save(*args, **kwargs)
 
     objects = TurmaQuerySet.as_manager()
+
+    class Meta:
+        constraints = [
+            # A mesma série não pode ter duas turmas com a mesma letra no mesmo ano letivo.
+            models.UniqueConstraint(fields=['ano', 'serie', 'turma_letra'], name='turma_unica_no_ano'),
+        ]
 
     def professores(self):
         """Regente e professores das disciplinas da turma."""

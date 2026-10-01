@@ -12,7 +12,11 @@ class AlunoViewSet(viewsets.ModelViewSet):
     permission_classes = [IsGestorOrReadOnly]
 
     def get_queryset(self):
-        return alunos_visiveis(self.request.user).order_by('id')
+        queryset = alunos_visiveis(self.request.user).order_by('nome_completo', 'id')
+        turma = self.request.query_params.get('turma')  # ?turma=<id>: alunos de uma turma
+        if turma and turma.isdigit():
+            queryset = queryset.filter(turma_id=int(turma))
+        return queryset
 
     def get_serializer_class(self):
         user = getattr(self.request, 'user', None)
