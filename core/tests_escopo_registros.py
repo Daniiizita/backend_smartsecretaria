@@ -70,3 +70,14 @@ class MatriculasEDocumentosEscopoTestCase(APITestCase):
     def test_gestao_ve_todos(self):
         self.assertEqual(len(self.ids(self.secretario, "/api/matricula/")), 2)
         self.assertEqual(len(self.ids(self.secretario, "/api/documentos/")), 2)
+
+
+class FiltroPorAlunoTestCase(MatriculasEDocumentosEscopoTestCase):
+    def test_filtra_matriculas_e_documentos_de_um_aluno(self):
+        aluno = self.matricula_filho.aluno_id
+        self.assertEqual(self.ids(self.secretario, f"/api/matricula/?aluno={aluno}"), {self.matricula_filho.pk})
+        self.assertEqual(self.ids(self.secretario, f"/api/documentos/?aluno={aluno}"), {self.documento_filho.pk})
+
+    def test_filtro_nao_amplia_o_acesso_do_responsavel(self):
+        outro = Aluno.objects.exclude(pk=self.matricula_filho.aluno_id).first()
+        self.assertEqual(self.ids(self.responsavel, f"/api/matricula/?aluno={outro.pk}"), set())

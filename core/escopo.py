@@ -61,3 +61,11 @@ def professores_visiveis(user):
             Q(turma__in=turmas) | Q(atribuicoes__turma__in=turmas)
         ).distinct()
     return Professor.objects.none()
+
+
+def filtrar_por_aluno(queryset, request):
+    """?aluno=<id> restringe matrículas/documentos a um aluno (dentro do que o usuário já pode ver)."""
+    aluno = request.query_params.get('aluno')
+    if aluno and aluno.isdigit():
+        return queryset.filter(aluno_id=int(aluno))
+    return queryset
