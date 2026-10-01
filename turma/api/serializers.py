@@ -32,7 +32,7 @@ class TurmaSerializer(serializers.ModelSerializer):
         # A unicidade é validada em validate(), com mensagem clara (a restrição no banco continua).
         validators = []
 
-    def get_total_alunos(self, turma):
+    def get_total_alunos(self, turma) -> int:
         anotado = getattr(turma, 'total_alunos', None)
         return anotado if anotado is not None else turma.aluno_set.count()
 
