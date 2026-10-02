@@ -84,7 +84,7 @@ NOTIFICACOES_DEMO = {
         ('sistema', 'Bem-vindo(a) à demonstração', 'Explore a gestão de usuários e permissões.', '/usuarios'),
     ],
     'secretaria': [
-        ('matricula', 'Matrículas pendentes', 'Há matrículas pendentes de conferência (dados fictícios).', None),
+        ('matricula', 'Matrículas pendentes', 'Há matrículas pendentes de conferência (dados fictícios).', '/matriculas?status=pendente'),
         ('sistema', 'Troque sua senha', 'Por segurança, defina uma senha pessoal no seu perfil.', '/perfil'),
     ],
     'professor': [
