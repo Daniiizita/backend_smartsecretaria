@@ -21,6 +21,7 @@ from django.utils import timezone
 from aluno.models import Aluno
 from calendario.models import Evento
 from disciplina.models import Disciplina
+from documentos.modelos import texto_modelo
 from documentos.models import Documento
 from logs.utils import registrar_atividade
 from matricula.models import Matricula
@@ -262,11 +263,12 @@ class Command(BaseCommand):
         # Responsável de demo com dois dependentes em turmas diferentes.
         for aluno in (alunos_por_turma[1][0], alunos_por_turma[2][0]):
             aluno.responsaveis.add(contas['responsavel'])
+            emissao = date(ANO_LETIVO, 2, 10)
             Documento.objects.create(
                 aluno=aluno,
                 tipo='declaracao',
-                data_emissao=date(ANO_LETIVO, 2, 10),
-                conteudo='Declaração de matrícula (documento fictício de demonstração).',
+                data_emissao=emissao,
+                conteudo=texto_modelo(aluno, 'declaracao', emissao),
             )
 
         hoje = timezone.now().replace(hour=9, minute=0, second=0, microsecond=0)
