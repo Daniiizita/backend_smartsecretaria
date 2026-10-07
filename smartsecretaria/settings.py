@@ -226,6 +226,10 @@ LOGIN_THROTTLE_RATE = os.getenv('LOGIN_THROTTLE_RATE', '10000/min' if _EM_TESTE 
 
 # Demonstração pública: as contas *_demo (com senha divulgada) ficam protegidas contra alterações.
 DEMO_MODE = env_bool('DEMO_MODE', False)
+
+# Identificação da escola nos documentos emitidos.
+ESCOLA_NOME = os.getenv('ESCOLA_NOME', 'Escola Municipal Fictícia (demonstração)')
+ESCOLA_CIDADE = os.getenv('ESCOLA_CIDADE', 'Cidade Fictícia')
 DEMO_SUFIXO = '_demo'
 
 # Erros no console, para aparecerem nos logs do provedor.

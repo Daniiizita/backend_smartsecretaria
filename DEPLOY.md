@@ -32,6 +32,8 @@ python -c "import secrets; print(secrets.token_urlsafe(24))"   # DEMO_ADMIN_PASS
 4. Confirme. O primeiro deploy leva alguns minutos.
 5. Anote o endereço do serviço, por exemplo `https://smartsecretaria-api.onrender.com`, e teste `https://SEU-SERVICO.onrender.com/api/saude/`: deve responder `{"status":"ok"}`.
 
+Opcionalmente, defina `ESCOLA_NOME` e `ESCOLA_CIDADE` (cabeçalho e local dos documentos emitidos); sem elas, valem nomes fictícios de demonstração.
+
 `SECRET_KEY` é gerada pelo próprio Render; `DEBUG`, `SECURE_HTTPS`, `DEMO_MODE` e `SQLITE_PATH` já vêm do `render.yaml`. A lista completa de variáveis está em [.env.example](.env.example).
 
 ## 2. Frontend na Vercel
